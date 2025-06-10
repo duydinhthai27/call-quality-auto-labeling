@@ -4,7 +4,7 @@ from sklearn.metrics import accuracy_score
 import matplotlib.pyplot as plt
 from pprint import pprint
 import numpy as np
-
+from evaluation_utils import evaluate_and_report, visualize_embeddings, plot_learning_curves, plot_roc_curve
 from data_loader import load_call_quality_data
 from config import MODEL_REGISTRY, LABELED_RATIO
 from active_learning import active_learning_cycle
@@ -76,4 +76,4 @@ def run_all_models():
     plt.tight_layout()
     plt.show()
 
-    pprint(results)
+    print(results)

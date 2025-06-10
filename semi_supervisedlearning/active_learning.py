@@ -3,14 +3,16 @@ import numpy as np
 import pandas as pd
 from datetime import datetime
 from config import CONFIDENCE_THRESHOLD, SAMPLE_DIR
-
+import torch
+import numpy as np
+import torch.nn.functional as F
 def predict_with_confidence(model, X_unlabeled, threshold=CONFIDENCE_THRESHOLD):
     # Duy note: can be change the way we calculate the confidences, this version I use max, consider to use cross entropy 
     proba = model.predict_proba(X_unlabeled)
     predictions = np.argmax(proba, axis=1)
     confidences = np.max(proba, axis=1)
     high_conf_mask = confidences >= threshold
-    return X_unlabeled[high_conf_mask], predictions[high_conf_mask], confidences[high_conf_mask]
+    return X_unlabeled[high_conf_mask], predictions[high_conf_mask], confidences[high_conf_mask],high_conf_mask
 
 def pseudo_label_and_retrain(X_labeled, y_labeled, X_pseudo, y_pseudo, model):
     X_combined = np.vstack([X_labeled, X_pseudo])
@@ -20,15 +22,7 @@ def pseudo_label_and_retrain(X_labeled, y_labeled, X_pseudo, y_pseudo, model):
     
 # Duy note: follow exactly current pipeline
 def active_learning_cycle(model, X_labeled, y_labeled, X_unlabeled, y_unlabeled, threshold=0.9):
-    proba = model.predict_proba(X_unlabeled)
-    predictions = np.argmax(proba, axis=1)
-    confidences = np.max(proba, axis=1)
-    
-    high_conf_mask = confidences >= threshold
-    X_pseudo = X_unlabeled[high_conf_mask]
-    y_pseudo = predictions[high_conf_mask]
-    conf_pseudo = confidences[high_conf_mask]
-
+    X_pseudo , y_pseudo, conf_pseudo,high_conf_mask= predict_with_confidence(model, X_unlabeled, threshold)
     if len(X_pseudo) == 0:
         # No confident samples found
         return model, X_labeled, y_labeled, 0.0, X_unlabeled, y_unlabeled
@@ -64,3 +58,39 @@ def active_learning_cycle(model, X_labeled, y_labeled, X_unlabeled, y_unlabeled,
 
     return model, X_combined, y_combined, train_loss, X_unlabeled_new, y_unlabeled_new
 
+def predict_with_cross_entropy(model,X_unlabeled, threshold=CONFIDENCE_THRESHOLD):
+    from scipy.stats import entropy
+    proba = model.predict_proba(X_unlabeled)
+    predictions = np.argmax(proba, axis=1)
+    confidences = -entropy(proba.T)  # Cross-entropy as a measure of confidence
+    high_conf_mask =confidences >= threshold
+    return X_unlabeled[high_conf_mask], predictions[high_conf_mask], confidences[high_conf_mask],high_conf_mask
+def pseudo_label_and_update_sets_for_cnn(model, X_unlabeled_current_np, y_unlabeled_current_true_labels, 
+                                X_labeled_current_np, y_labeled_current_np, confidence_threshold, device):
+   
+
+    model.eval()
+    X_unlabeled_tensor = torch.tensor(X_unlabeled_current_np, dtype=torch.float32).unsqueeze(1).to(device)
+    with torch.no_grad():
+        outputs = model(X_unlabeled_tensor)
+        probabilities = F.softmax(outputs, dim=1)
+        confidences, pseudo_labels = torch.max(probabilities, dim=1)
+    confidences = confidences.cpu().numpy()
+    pseudo_labels = pseudo_labels.cpu().numpy()
+
+    # Select high-confidence pseudo-labels
+    high_confidence_indices = np.where(confidences >= confidence_threshold)[0]
+    num_new_pseudo_labels = len(high_confidence_indices)
+    print(f"Found {num_new_pseudo_labels} new pseudo-labels with confidence >= {confidence_threshold}")
+
+    if num_new_pseudo_labels > 0:
+        # Add high-confidence pseudo-labeled data to labeled set
+        X_labeled_current_np = np.concatenate([X_labeled_current_np, X_unlabeled_current_np[high_confidence_indices]], axis=0)
+        y_labeled_current_np = np.concatenate([y_labeled_current_np, pseudo_labels[high_confidence_indices]], axis=0)
+        # Remove them from unlabeled set
+        mask = np.ones(X_unlabeled_current_np.shape[0], dtype=bool)
+        mask[high_confidence_indices] = False
+        X_unlabeled_current_np = X_unlabeled_current_np[mask]
+        y_unlabeled_current_true_labels = y_unlabeled_current_true_labels[mask]
+
+    return X_labeled_current_np, y_labeled_current_np, X_unlabeled_current_np, y_unlabeled_current_true_labels, num_new_pseudo_labels

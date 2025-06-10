@@ -82,7 +82,6 @@ def plot_learning_curves(train_losses, val_accuracies):
 
 def plot_roc_curve(model, X_test, y_test):
     from sklearn.preprocessing import label_binarize
-    from sklearn.metrics import roc_auc_score
 
     y_score = model.predict_proba(X_test)
     classes = np.unique(y_test)

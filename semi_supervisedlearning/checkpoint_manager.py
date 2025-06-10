@@ -1,7 +1,7 @@
 # --- checkpoint_manager.py ---
 from datetime import datetime
 import joblib
-# from config import CHECKPOINT_DIR
+from config import CHECKPOINT_DIR
 
 def save_checkpoint(model, model_name, iteration):
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
