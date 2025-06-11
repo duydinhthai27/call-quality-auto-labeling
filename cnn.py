@@ -5,8 +5,8 @@ from semi_supervisedlearning.data_loader import load_call_quality_data
 import numpy as np
 from model_cnn import CNN1D
 import torch.nn.functional as F
-from model_cnn import pseudo_label_and_update_sets_for_cnn
-
+from model_cnn import pseudo_label_and_update_sets_for_cnn,evaluate_and_report_cnn
+from semi_supervisedlearning.evaluation_utils import visualize_embeddings, plot_learning_curves
 confidence_threshold = 0.9
 batch_size = 64
 num_epochs = 50
@@ -56,6 +56,11 @@ tes_final_loader = torch.utils.data.DataLoader(test_final_dataset, batch_size=64
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 final_model_for_evaluation = None
+
+train_losses = []
+val_losses = []
+train_accuracies = []
+val_accuracies = []
 
 for iteration in range(num_self_training_iterations):
     print(f"\n--- Self-Training Iteration: {iteration + 1}/{num_self_training_iterations} ---")
@@ -108,6 +113,9 @@ for iteration in range(num_self_training_iterations):
     # Train the model
     for epoch in range(num_epochs):
         model.train()
+        running_loss = 0
+        correct = 0
+        total = 0
         for inputs, labels in train_loader:
             inputs, labels = inputs.to(device), labels.to(device)
             optimizer.zero_grad()
@@ -115,27 +123,42 @@ for iteration in range(num_self_training_iterations):
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
-        if val_loader and (epoch % 5 == 0 or epoch == num_epochs - 1):
+            running_loss += loss.item() * inputs.size(0)
+            _, predicted = torch.max(outputs.data, 1)
+            correct += (predicted == labels).sum().item()
+            total += labels.size(0)
+        train_loss = running_loss / total
+        train_acc = correct / total
+        train_losses.append(train_loss)
+        train_accuracies.append(train_acc)
+
+        # Validation
+        if val_loader:
             model.eval()
             val_loss, val_acc, val_total = 0, 0, 0
             with torch.no_grad():
                 for inputs, labels in val_loader:
                     inputs, labels = inputs.to(device), labels.to(device)
                     outputs = model(inputs)
-                    val_loss += criterion(outputs, labels).item() * inputs.size(0)
+                    loss = criterion(outputs, labels)
+                    val_loss += loss.item() * inputs.size(0)
                     _, predicted = torch.max(outputs.data, 1)
                     val_acc += (predicted == labels).sum().item()
                     val_total += labels.size(0)
             val_loss /= val_total
             val_acc /= val_total
+            val_losses.append(val_loss)
+            val_accuracies.append(val_acc)
             print(f"  Iter {iteration+1}, Epoch {epoch+1}: Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}")
-
+        else:
+            val_losses.append(None)
+            val_accuracies.append(None)
+            
     # Pseudo-labeling and update sets
     X_labeled_current_np, y_labeled_current_np, X_unlabeled_current_np, y_unlabeled_current_true_labels, num_new_pseudo_labels = pseudo_label_and_update_sets_for_cnn(
         model, X_unlabeled_current_np, y_unlabeled_current_true_labels, 
         X_labeled_current_np, y_labeled_current_np, confidence_threshold, device
     )
-
     if num_new_pseudo_labels == 0 and iteration > 0:
         print("No new pseudo-labels. Stopping.")
         break
@@ -147,10 +170,10 @@ if final_model_for_evaluation is not None:
     final_model_for_evaluation.eval()
     X_test_tensor = torch.tensor(X_test_final, dtype=torch.float32).unsqueeze(1).to(device)
     y_test_tensor = torch.tensor(y_test_final, dtype=torch.long).to(device)
-    with torch.no_grad():
-        outputs = final_model_for_evaluation(X_test_tensor)
-        _, preds = torch.max(outputs, 1)
-        accuracy = (preds == y_test_tensor).float().mean().item()
-    print(f"Final Test Accuracy: {accuracy:.4f}")
+    test_final_dataset = torch.utils.data.TensorDataset(X_test_tensor, y_test_tensor)
+    tes_final_loader = torch.utils.data.DataLoader(test_final_dataset, batch_size=batch_size, shuffle=False)
+    evaluate_and_report_cnn(final_model_for_evaluation, tes_final_loader, criterion, num_classes=num_classes_model, device=device)
+    plot_learning_curves(train_losses, val_accuracies)
 else:
     print("No final model available for evaluation.")
+visualize_embeddings(X_labeled_current_np, y_labeled_current_np)

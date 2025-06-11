@@ -2,6 +2,7 @@ import torch.nn as nn
 import torch
 import torch.nn.functional as F
 import numpy as np
+from sklearn.metrics import classification_report
 class CNN1D(nn.Module):
         def __init__(self, input_features, num_classes_model):
             super(CNN1D, self).__init__()
@@ -57,3 +58,31 @@ def pseudo_label_and_update_sets_for_cnn(model, X_unlabeled_current_np, y_unlabe
         y_unlabeled_current_true_labels = y_unlabeled_current_true_labels[mask]
 
     return X_labeled_current_np, y_labeled_current_np, X_unlabeled_current_np, y_unlabeled_current_true_labels, num_new_pseudo_labels
+def evaluate_and_report_cnn(model, test_loader, criterion, label_encoder=None, num_classes=None, device='cpu'):
+    model.eval()
+    test_loss_total = 0
+    test_correct = 0
+    test_total = 0
+    all_preds = []
+    all_labels = []
+    with torch.no_grad():
+        for inputs, labels in test_loader:
+            inputs, labels = inputs.to(device), labels.to(device)
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            test_loss_total += loss.item() * inputs.size(0)
+            _, predicted = torch.max(outputs.data, 1)
+            test_total += labels.size(0)
+            test_correct += (predicted == labels).sum().item()
+            all_preds.extend(predicted.cpu().numpy())
+            all_labels.extend(labels.cpu().numpy())
+    avg_test_loss = test_loss_total / test_total if test_total > 0 else 0
+    test_accuracy = test_correct / test_total if test_total > 0 else 0
+    print(f"Final Test Loss: {avg_test_loss:.4f}, Final Test Accuracy: {test_accuracy:.4f}")
+    print("\nClassification Report on Final Test Set:")
+    if label_encoder is not None and num_classes is not None:
+        report_target_names = list(label_encoder.classes_)
+        report_indices = np.arange(num_classes)
+        print(classification_report(all_labels, all_preds, labels=report_indices, target_names=report_target_names, zero_division=0))
+    else:
+        print(classification_report(all_labels, all_preds, zero_division=0))
