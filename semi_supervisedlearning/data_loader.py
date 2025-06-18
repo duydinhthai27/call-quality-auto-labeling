@@ -8,16 +8,23 @@ target_col = "OverallCallQuality"
 
 # Columns to ignore, Duy note: in case some columns are not in use but not remove all
 cols_to_remove = [
-    'SbcEstimatedGttCost', 'SbcEstimatedSoftnetCost', 'StreamQuality',
-    'CallerConnectionType', 'CalleeConnectionType', 'CalleeLinkSpeed', 'CalleeTransportProtocol'
+     'StreamId', 'CallRecordId', 'Comment', 'SbcSessionId', 'CallerPhoneNumber',
+        'CalleePhoneNumber', 'CallerIpAddress', 'CalleeIpAddress', 'CallerReflexiveIpAddress',
+        'CalleeReflexiveIpAddress', 'CallerSubnet', 'CalleeSubnet',
+        'SegmentFailedReason', 'SegmentFailureStage', 'CallerRelayIpAddress', 'CallerRelayPort',
+        'CalleeRelayIpAddress', 'CalleeRelayPort', 'EstimatedGttCost', 'EstimatedSoftnetCost',
+        'SbcEstimatedGttCost', 'SbcEstimatedSoftnetCost', 'CallStartTime', 'CallEndTime',
+        'SbcSessionStartTime', 'SbcSessionEndTime',
+        'SbcSessionStatus', 'Trunk', 'CallerPhoneNumberPrefix', 'CalleePhoneNumberPrefix', 'StreamQuality'
 ]
 
-def load_call_quality_data():
-    df = pd.read_csv(FILE_PATH, low_memory=False)
+def load_call_quality_data(file_path=FILE_PATH, target_col=target_col, cols_to_remove=cols_to_remove):
+    df = pd.read_csv(FILE_PATH)
     df = df.dropna(subset=[target_col])
 
     original_df = df.copy()
     categorical_cols = df.select_dtypes(include=['object']).columns.tolist()
+    
     if target_col in categorical_cols:
         categorical_cols.remove(target_col)
     numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()

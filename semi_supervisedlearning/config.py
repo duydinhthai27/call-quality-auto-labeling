@@ -20,14 +20,14 @@ os.makedirs(CHECKPOINT_DIR, exist_ok=True)
 os.makedirs(SAMPLE_DIR, exist_ok=True)
 
 MODEL_REGISTRY = {
-    'random_forest': (RandomForestClassifier, {'n_estimators': 100, 'random_state': 42, 'class_weight' : 'balanced'}),
+    #'random_forest': (RandomForestClassifier, {'n_estimators': 100, 'random_state': 42, 'class_weight' : 'balanced'}),
     'logistic_regression': (LogisticRegression, {'solver': 'liblinear', 'random_state': 42}),
-    # 'gradient_boosting': (GradientBoostingClassifier, {'n_estimators': 100, 'random_state': 42}),
-    # 'xgboost': (XGBClassifier, {'use_label_encoder': False, 'eval_metric': 'logloss', 'random_state': 42}),
-    # 'svm': (SVC, {'probability': True, 'random_state': 42}),
+    'gradient_boosting': (GradientBoostingClassifier, {'n_estimators': 100, 'random_state': 42}),
+    'xgboost': (XGBClassifier, {'use_label_encoder': False, 'eval_metric': 'logloss', 'random_state': 42}),
+    'svm': (SVC, {'probability': True, 'random_state': 42}),
     'knn': (KNeighborsClassifier, {}),
-    # 'sgd': (SGDClassifier, {'loss': 'log_loss', 'random_state': 42}),
-    # 'decision_tree': (DecisionTreeClassifier, {'random_state': 42}),
+    'sgd': (SGDClassifier, {'loss': 'log_loss', 'random_state': 42}),
+    'decision_tree': (DecisionTreeClassifier, {'random_state': 42}),
     'adaboost': (AdaBoostClassifier, {'random_state': 42}),
-    # 'extra_trees': (ExtraTreesClassifier, {'random_state': 42})
+    'extra_trees': (ExtraTreesClassifier, {'random_state': 42})
 }
