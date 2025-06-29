@@ -22,12 +22,13 @@ def train_model(X_train, y_train, model_class, model_params):
     model.fit(X_train, y_train)
     return model
 
-def run_all_models():
+def run_all_models(use_dynamic_threshold=False):
     X, y, feature_names, original_df, scaler = load_call_quality_data()
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
     results = {}
     learning_curves = {}
+    total_epochs = 100
 
     for name, (model_class, model_params) in MODEL_REGISTRY.items():
         print(f"\nTraining model: {name}")
@@ -35,9 +36,12 @@ def run_all_models():
         model = train_model(X_labeled, y_labeled, model_class, model_params)
 
         losses = []
-        for iteration in range(100):
+        for iteration in range(total_epochs):
             model, X_labeled, y_labeled, train_loss, X_unlabeled, y_unlabeled = active_learning_cycle(
-                model, X_labeled, y_labeled, X_unlabeled, y_unlabeled
+                model, X_labeled, y_labeled, X_unlabeled, y_unlabeled,
+                X_val=X_test, y_val=y_test,
+                epoch=iteration + 1, total_epochs=total_epochs,
+                use_dynamic_threshold=use_dynamic_threshold
             )
             losses.append(train_loss)  # collect training loss per iteration
             save_checkpoint(model, name, iteration)

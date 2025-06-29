@@ -6,7 +6,7 @@ from sklearn.impute import SimpleImputer
 FILE_PATH = "Filtered_Call_Records-cut (1).csv"  
 target_col = "OverallCallQuality"
 
-# Columns to ignore, Duy note: in case some columns are not in use but not remove all
+# Columns to ignore
 cols_to_remove = [
      'StreamId', 'CallRecordId', 'Comment', 'SbcSessionId', 'CallerPhoneNumber',
         'CalleePhoneNumber', 'CallerIpAddress', 'CalleeIpAddress', 'CallerReflexiveIpAddress',
