@@ -20,7 +20,6 @@ The code implements a hybrid auto-labeling framework that combines principles fr
 *   **Multiple Model Support**: Easily compare various classification models (XGBoost, RandomForest, Logistic Regression, etc.).
 *   **Flexible Confidence Threshold**: Supports both fixed and dynamic confidence thresholds for pseudo-labeling.
 *   **Evaluation Suite**: Includes utilities for generating classification reports, confusion matrices, ROC curves, and visualizing embeddings.
-*   **Checkpointing**: Saves model checkpoints during the active learning cycles.
 
 ## Codebase Structure
 
