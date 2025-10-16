@@ -1,6 +1,6 @@
 # Machine Learning for Call Quality Estimation: Auto-Labeling using Hybrid Strategy combining Active and Semi-Supervised Learning
 
-This repository contains the official code implementation for the paper, "Machine Learning for Call Quality Estimation: Auto-Labeling using Hybrid Strategy combining Active and Semi-Supervised Learning".
+This repository contains the official code implementation for the paper, ["Machine Learning for Call Quality Estimation: Auto-Labeling using Hybrid Strategy combining Active and Semi-Supervised Learning"](https://drive.google.com/file/d/1WEz6uW2Kv7wMgVRdfClGAYMuJLnB7P8E/view?usp=sharing).
 
 ## Abstract
 
